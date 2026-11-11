@@ -49,12 +49,10 @@ THUMBS = HERE / ".thumbs"
 WD = "월화수목금토일"
 
 DECISIONS = [
-    ("①", "섞기/덧바르기 표현", "현재 v8 그대로(섞기). 바꾸면 D편 재생성"),
-    ("②", "'#광고 스팟이지 운영' 첫 줄 상시", "미결 → 캡션 맨 위 [결정②] 줄만 표시, 승인 시 publish_plan.py DECISION_2=True"),
-    ("③", "길이", "현재 v8 길이 유지"),
-    ("④", "실촬영 전환일", "미정"),
-    ("⑤", "CTA '곧 품절' / '3만원대'", "현재 v8 = 곧 품절, 3만원대는 v9 재생성 필요"),
+    ("④", "실촬영 전환일", "미정 — 손등·튜브 실제 촬영 30클립을 찍는 날. 찍기 전까지는 AI 이미지 영상 + AI 라벨 ON 그대로"),
+    ("⑤", "CTA '곧 품절' / '3만원대'", "확인 중 — 현재 v8 = 곧 품절, 3만원대는 v9 재생성 필요"),
 ]
+DECIDED = "결정 완료(2026-11-11): 광고 해시태그 줄(#광고 스팟이지 운영) 넣지 않음 · 섞기 표현 그대로 · 길이 그대로"
 
 
 # ───────────────────────────────────────────────────────────── 공통 도구 ──
@@ -208,7 +206,7 @@ def park_section() -> str:
     judged = sum(1 for r in kpi.values() if r.get("판정"))
     ready = sum(1 for d in days if (PARK_DRIVE / d).exists())
     out = ['<div class="hero"><h2>박미경 계정</h2><div class="sub">스팟멜트 기미조합 · 6주 운영 '
-           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(반대 본), 카드뉴스 화·금 12:30</div></div>',
+           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00(첫날 11/11만 20:00·20:30·21:00), 틱톡은 5분 뒤(반대 본), 카드뉴스 화·금 12:30</div></div>',
            tiles([(f"{posted}/{total}", "업로드 URL 기록"), (str(judged), "48h 판정 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
                   (f"{len(days)}일", "전체 일정")]),
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>']
@@ -268,11 +266,11 @@ def park_section() -> str:
     out.append('<h3 class="sec">올리는 법</h3><div class="box"><ol class="how">'
                '<li><b>PC</b>: 날짜 칸의 <b>경로 복사</b> → 인스타/틱톡 업로드 창 "컴퓨터에서 선택" → 파일 대화상자 주소칸에 붙여넣기 + Enter. '
                '<b>폰</b>: 드라이브에서 열기 → 파일 저장.</li>'
-               '<li>파일명 앞 숫자가 올릴 시각(1030 = 10:30). <b>캡션 복사</b> 버튼은 회색 [결정②] 줄을 빼고 복사합니다. 커버는 <code>_cover.png</code>, AI 라벨 ON.</li>'
+               '<li>파일명 앞 숫자가 올릴 시각(1030 = 10:30). <b>캡션 복사</b> 버튼으로 캡션을 그대로 붙여넣으면 됩니다. 커버는 <code>_cover.png</code>, AI 라벨 ON.</li>'
                '<li>올린 링크를 알려 주시면(또는 <code>python kpi.py url D01 IG 링크</code>) 장부에 기록 → 48시간 뒤 조회수 → 판정이 칸에 표시됩니다.</li>'
                '<li>슬롯을 놓치면 몰아 올리지 말고 하루 뒤로 미룹니다.</li></ol>'
                '<div class="sub" style="margin-top:8px">판정 기준(인스타 48h): 3만↑ 복제 / 1만~3만 유지 / 1천~1만 훅 교체 / 1천 미만 3연속 고민 교체. 틱톡 1주차는 1/3 척도.</div></div>')
-    out.append('<h3 class="sec">결정 대기 (정하시기 전까지 v8 그대로)</h3><div class="box scroll"><table>'
+    out.append('<h3 class="sec">결정 대기</h3><div class="sub">' + e(DECIDED) + '</div><div class="box scroll"><table>'
                + "".join(f"<tr><td class='nw'><b>{a}</b> {e(b)}</td><td>{e(c)}</td></tr>" for a, b, c in DECISIONS) + "</table></div>")
     out.append('<h3 class="sec">경로 모음</h3>' + path_table([
         ("업로드 폴더(날짜별)", PARK_DRIVE), ("프로젝트", PARK_P), ("캘린더 단일 소스", PARK_P / "out" / "sim_calendar.json"),
