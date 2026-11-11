@@ -5,7 +5,7 @@ r"""account_dashboard/build.py: 계정 업로드 플랜 통합 대시보드 (박
 
 입력(단일 소스, 여기서는 읽기만):
   박미경  ../bench_account_moose  out/sim_calendar.json · reels_gen.json · kpi.csv · publish_plan.py
-  하린    ../influencer_harin/publish_calendar.json  (시작 2026-11-11 20:00)
+  하린    ../influencer_harin/publish_calendar.json  (시작 2026-11-12 09:30)
   남AI    소재·일정 없음 → 빈 탭
 웹(https)에서는 file:// 링크가 막히므로 드라이브 웹 폴더 링크(DriveFS 메타데이터에서 ID 조회) + 경로 복사를 같이 둔다.
 외부 도구는 PIL, ffmpeg(썸네일)만. 크레딧 0. 화면(CSS·JS)은 assets.py.
@@ -50,7 +50,7 @@ WD = "월화수목금토일"
 
 DECISIONS = [
     ("④", "실촬영 전환일", "미정 — 손등·튜브 실제 촬영 30클립을 찍는 날. 찍기 전까지는 AI 이미지 영상 + AI 라벨 ON 그대로"),
-    ("⑤", "CTA '곧 품절' / '3만원대'", "확인 중 — 현재 v8 = 곧 품절, 3만원대는 v9 재생성 필요"),
+    ("⑤", "CTA '곧 품절' / '3만원대'", "현재 유지(곧 품절) — 2026-11-11 '일단 그냥 둬'. 바꾸려면 v9 재생성"),
 ]
 DECIDED = "결정 완료(2026-11-11): 광고 해시태그 줄(#광고 스팟이지 운영) 넣지 않음 · 섞기 표현 그대로 · 길이 그대로"
 
@@ -206,7 +206,7 @@ def park_section() -> str:
     judged = sum(1 for r in kpi.values() if r.get("판정"))
     ready = sum(1 for d in days if (PARK_DRIVE / d).exists())
     out = ['<div class="hero"><h2>박미경 계정</h2><div class="sub">스팟멜트 기미조합 · 6주 운영 '
-           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00(첫날 11/11만 20:00·20:30·21:00), 틱톡은 5분 뒤(반대 본), 카드뉴스 화·금 12:30</div></div>',
+           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(반대 본), 카드뉴스 화·금 12:30</div></div>',
            tiles([(f"{posted}/{total}", "업로드 URL 기록"), (str(judged), "48h 판정 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
                   (f"{len(days)}일", "전체 일정")]),
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>']
@@ -291,6 +291,16 @@ def harin_names(it: dict) -> tuple[list[tuple[Path, str]], str]:
     return pairs, base + "_캡션.txt"
 
 
+def cap_body(text: str) -> str:
+    """캡션 파일에서 올릴 글만. '----' 줄 아래([레퍼런스]·[업로드] 제작 메모)는 붙여넣으면 안 되므로 뺀다."""
+    out = []
+    for ln in text.splitlines():
+        if ln.strip().startswith("----"):
+            break
+        out.append(ln)
+    return "\n".join(out).strip()
+
+
 def harin_sync(cal: dict) -> None:
     """ready 항목을 002. 하린 계정 업로드\\YYYY-MM-DD\\ 로 복사(같은 크기면 건너뜀). 원본은 건드리지 않음."""
     for it in cal["items"]:
@@ -306,7 +316,7 @@ def harin_sync(cal: dict) -> None:
         if it.get("caption_src"):
             cs = ROOT / it["caption_src"]
             if cs.exists():
-                (folder / capname).write_text(cs.read_text(encoding="utf-8-sig"), encoding="utf-8")
+                (folder / capname).write_text(cap_body(cs.read_text(encoding="utf-8-sig")) + "\n", encoding="utf-8")
 
 
 def harin_section() -> str:
@@ -320,12 +330,12 @@ def harin_section() -> str:
     n_ready = sum(1 for it in cal["items"] if it["status"] == "ready")
     n_todo = sum(1 for it in cal["items"] if it["status"] == "todo")
     out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">AI 인플루언서 · 인스타(일상 피드 + 릴스) · 틱톡 하루 3편(얼굴 없이 물건·손·POV) · '
-           '<b>시작 11/11(수) 20:00</b></div></div>',
+           '<b>시작 11/12(목) 오전</b></div></div>',
            tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작(틱톡 2일차부터)"), (f"{len(cal.get('hold', []))}건", "보류"),
                   (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>시작 시각 20:00만 지정하신 값입니다. 그 뒤 순서·시각(20:10, 20:30, 21:00)과 '
-           '11/12~13 배치는 <b>제안</b>이라 바꾸실 수 있습니다.</li>'
-           '<li>11/12 릴스 1편은 캡션이 없습니다. 틱톡 2일차(11/12)부터는 소재가 아직 없습니다.</li>'
+           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>지정하신 것은 "내일(11/12) 오전부터"입니다. 구체 시각(09:30, 09:40, 13:00, 19:00)과 '
+           '11/13~14 배치는 <b>제안</b>이라 바꾸실 수 있습니다.</li>'
+           '<li>11/13 릴스 1편은 캡션이 없습니다. 틱톡 2일차(11/13)부터는 소재가 아직 없습니다.</li>'
            '<li>목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸에 두었습니다.</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
            f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
@@ -337,7 +347,7 @@ def harin_section() -> str:
             pairs, capname = harin_names(it)
             cap = ""
             if it.get("caption_src") and (ROOT / it["caption_src"]).exists():
-                cap = (ROOT / it["caption_src"]).read_text(encoding="utf-8-sig").strip()
+                cap = cap_body((ROOT / it["caption_src"]).read_text(encoding="utf-8-sig"))
             if it["status"] == "todo":
                 st = ("bad", "미제작")
             elif pairs and all(n in files for _, n in pairs):
