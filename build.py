@@ -82,7 +82,7 @@ def drive_children(parent_id: str) -> dict:
             row = c.execute("select stable_id from items where id=?", (parent_id,)).fetchone()
             if row:
                 for t, i in c.execute("select i.local_title,i.id from items i join stable_parents s on s.item_stable_id=i.stable_id "
-                                      "where s.parent_stable_id=? and i.is_folder=1", (row[0],)):
+                                      "where s.parent_stable_id=? and i.trashed=0 and i.is_folder=1 and i.id not like 'local-%' and i.is_folder=1", (row[0],)):
                     if i and not i.startswith("local"):
                         out[t] = i
             c.close()
