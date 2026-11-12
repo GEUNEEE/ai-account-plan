@@ -142,7 +142,8 @@ def slot_card(s: dict) -> str:
     plat_txt = {"IG": "인스타", "TT": "틱톡", "IG 카드": "인스타 카드"}.get(s["plat"], s["plat"])
     head = (f'<div class="s1"><span class="tm">{e(s["time"])}</span><span class="pl {plat_cls}">{e(plat_txt)}</span>'
             f'{tag(*s["status"])}<span class="late"></span></div>')
-    files = "".join(f"<div>{e(x)}</div>" for x in s.get("files", []))
+    files = "".join(f'<div><b>{e(x[0])}</b> {e(x[1])}</div>' if isinstance(x, tuple) else f"<div>{e(x)}</div>"
+                    for x in s.get("files", []))
     act = []
     if s.get("caption"):
         act.append(f'<button class="btn p" data-cp="{e(s.get("cap_copy") or s["caption"])}" data-msg="캡션 복사됨">📋 캡션 복사</button>')
@@ -157,8 +158,8 @@ def slot_card(s: dict) -> str:
         v = s.get("views") or ""
         jd = s.get("verdict") or ""
         jc = "ok" if jd.startswith("복제") else "acc" if jd.startswith("유지") else "bad"
-        kpi = ('<div class="kpi">' + (tag("ok", "URL 기록됨") if s.get("url") else '<span class="sub">URL 미기록</span>')
-               + (f" · 48h {e(v)}회" if v else "") + (f" {tag(jc, jd)}" if jd else "") + "</div>")
+        kpi = ('<div class="kpi">' + (tag("ok", "올린 글 링크 기록됨") if s.get("url") else '<span class="sub">아직 안 올림(올린 뒤 링크를 알려 주세요)</span>')
+               + (f" · 이틀 뒤 조회수 {e(v)}회" if v else "") + (f" {tag(jc, jd)}" if jd else "") + "</div>")
     note = f'<div class="note">{e(s["note"])}</div>' if s.get("note") else ""
     return (f'<div class="slot" data-dt="{e(s.get("dt", ""))}" data-track="{1 if s.get("track") else 0}" data-url="{1 if s.get("url") else 0}">{th}'
             f'<div class="sb">{head}<div class="ti">{e(s["title"])}</div>'
@@ -206,13 +207,13 @@ def park_section() -> str:
     judged = sum(1 for r in kpi.values() if r.get("판정"))
     ready = sum(1 for d in days if (PARK_DRIVE / d).exists())
     out = ['<div class="hero"><h2>박미경 계정</h2><div class="sub">스팟멜트 기미조합 · 6주 운영 '
-           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(반대 본), 카드뉴스 화·금 12:30</div></div>',
-           tiles([(f"{posted}/{total}", "업로드 URL 기록"), (str(judged), "48h 판정 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
+           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(같은 주제의 틱톡용 영상), 카드뉴스 화·금 12:30</div></div>',
+           tiles([(f"{posted}/{total}", "올린 글 링크 기록"), (str(judged), "이틀 뒤 조회수 확인 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
                   (f"{len(days)}일", "전체 일정")]),
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>']
     for wk in sorted({r["wk"] for r in pp.CAL}):
         wdays = [d for d in days if by_day[d][0]["wk"] == wk]
-        bon = "인스타 A본 · 틱톡 B본" if wk <= 3 else "인스타 B본 · 틱톡 A본"
+        bon = "인스타용·틱톡용 영상이 따로 있습니다(같은 주제, 다른 편집)"
         out.append(f'<details class="wk"><summary>{wk}주차 <span class="sub">{md(wdays[0])}~{md(wdays[-1])} · {bon}</span></summary>')
         for d in wdays:
             date = dt.date.fromisoformat(d)
@@ -226,17 +227,17 @@ def park_section() -> str:
                 if r["kind"] == "reel":
                     for plat, rid, t in (("IG", r["IG"], dt.time(hh, mm)),
                                          ("TT", r["TT"], (dt.datetime.combine(date, dt.time(hh, mm)) + pp.TT_OFFSET).time())):
-                        base = f"{t:%H%M}_{plat}_{rid}"
+                        base = pp.reel_base(f"{t:%H%M}", plat, rid)
                         src = PARK_P / "out" / f"{rid}.mp4"
                         v = pp.GEN.get(rid, {}).get("vars", {})
                         st = ("ok", "올릴 준비 완료") if f"{base}.mp4" in files else ("wait", "전날 18:00 폴더 복사") if src.exists() else ("bad", "미제작")
                         k = kpi.get((rid, plat, d), {})
                         cap = pp.reel_caption(rid, plat)
-                        cov = folder / f"{base}_cover.png"
+                        cov = folder / f"{base}_커버.png"
                         slots.append(dict(
-                            time=f"{t:%H:%M}", plat=plat, title=f"{rid} · {'B' if rid.endswith('B') else 'A'}본",
-                            sub=" · ".join(x for x in (v.get("나이"), v.get("고민"), v.get("약국템"), v.get("권위")) if x),
-                            status=st, files=[f"{base}.mp4", f"{base}_cover.png (커버)"], thumb=thumb(cov if cov.exists() else src),
+                            time=f"{t:%H:%M}", plat=plat, title=f"{v.get('나이', '')} {pp.TITLE.get(v.get('고민'), '')} · {v.get('약국템', '')} + 스팟멜트 조합 영상",
+                            sub="인스타 릴스로 올리기" if plat == "IG" else "틱톡에 올리기 (인스타와 같은 주제, 틱톡용으로 다르게 편집한 영상)",
+                            status=st, files=[("① 영상", f"{base}.mp4"), ("② 커버 사진", f"{base}_커버.png"), ("③ 글", "아래 '캡션 복사' 버튼 (파일로는 " + f"{base}_캡션.txt)")], thumb=thumb(cov if cov.exists() else src),
                             caption=cap, cap_copy=no_mark(cap), url=k.get("url"), views=k.get("views_48h"), verdict=k.get("판정"),
                             track=True, dt=f"{d}T{t:%H:%M}"))
                 else:
@@ -244,37 +245,37 @@ def park_section() -> str:
                     basec = cid.rstrip("b")
                     hhmm = f"{hh:02d}{mm:02d}"
                     srcc = pp.CARDS_DIR / f"{basec}_1.jpg" if pp.CARDS_DIR else None
-                    st = (("ok", "올릴 준비 완료") if f"{hhmm}_IG_{cid}_1.jpg" in files
+                    st = (("ok", "올릴 준비 완료") if f"{pp.card_base(hhmm, cid)}_1.jpg" in files
                           else ("wait", "전날 18:00 폴더 복사") if srcc and srcc.exists() else ("bad", "미제작"))
                     k = kpi.get((cid, "IG", d), {})
                     cap = pp.card_caption(cid)
                     slots.append(dict(
-                        time=r["slot"], plat="IG 카드", title=f"{cid} · {pp.CARD_TITLE[basec]}", sub="카드뉴스 2장",
-                        status=st, files=[f"{hhmm}_IG_{cid}_1.jpg", f"{hhmm}_IG_{cid}_2.jpg"], thumb=thumb(srcc),
-                        caption=cap, cap_copy=no_mark(cap), note="b본 문구 변형 미제작 → A본 사진 사용" if cid.endswith("b") else "",
+                        time=r["slot"], plat="IG 카드", title=f"카드뉴스 · {pp.CARD_TITLE[basec]}", sub="인스타에 사진 2장 묶음으로 올리기",
+                        status=st, files=[("① 사진 1", f"{pp.card_base(hhmm, cid)}_1.jpg"), ("② 사진 2", f"{pp.card_base(hhmm, cid)}_2.jpg"), ("③ 글", "아래 '캡션 복사' 버튼")], thumb=thumb(srcc),
+                        caption=cap, cap_copy=no_mark(cap), note="같은 카드를 두 번째로 올리는 날(문구 바꾼 판은 아직 안 만들어 같은 사진 사용)" if cid.endswith("b") else "",
                         url=k.get("url"), views=k.get("views_48h"), verdict=k.get("판정"), track=True, dt=f"{d}T{r['slot']}"))
             slots.sort(key=lambda s: s["time"])
             tags = tag("ok", "폴더 있음") if exists else tag("wait", "전날 18:00 생성")
             if dayn <= pp.PROTECT_DAYS:
-                tags += tag("bad", "첫 3일 보호: 하루 2편·링크 없음")
+                tags += tag("bad", "첫 3일: 하루 2편만, 글·프로필에 링크 넣지 않기")
             elif dayn == pp.PROTECT_DAYS + 1:
                 tags += tag("acc", "틱톡 바이오 링크 넣는 날")
             rec = date + dt.timedelta(days=2)
-            out.append(day_card(d, f"{dayn}일차 · 업로드 {len(slots)}회 · 조회수 기록 {rec.month}/{rec.day} 09:00", tags, folder,
+            out.append(day_card(d, f"{dayn}일차 · 올릴 것 {len(slots)}개 · 조회수 확인하는 날 {rec.month}/{rec.day}", tags, folder,
                                 gurl(ids.get(d)), gurl(PARK_ID), slots))
         out.append("</details>")
     out.append('<h3 class="sec">올리는 법</h3><div class="box"><ol class="how">'
                '<li><b>PC</b>: 날짜 칸의 <b>경로 복사</b> → 인스타/틱톡 업로드 창 "컴퓨터에서 선택" → 파일 대화상자 주소칸에 붙여넣기 + Enter. '
                '<b>폰</b>: 드라이브에서 열기 → 파일 저장.</li>'
-               '<li>파일명 앞 숫자가 올릴 시각(1030 = 10:30). <b>캡션 복사</b> 버튼으로 캡션을 그대로 붙여넣으면 됩니다. 커버는 <code>_cover.png</code>, AI 라벨 ON.</li>'
-               '<li>올린 링크를 알려 주시면(또는 <code>python kpi.py url D01 IG 링크</code>) 장부에 기록 → 48시간 뒤 조회수 → 판정이 칸에 표시됩니다.</li>'
-               '<li>슬롯을 놓치면 몰아 올리지 말고 하루 뒤로 미룹니다.</li></ol>'
-               '<div class="sub" style="margin-top:8px">판정 기준(인스타 48h): 3만↑ 복제 / 1만~3만 유지 / 1천~1만 훅 교체 / 1천 미만 3연속 고민 교체. 틱톡 1주차는 1/3 척도.</div></div>')
+               '<li>파일명 앞 숫자가 올릴 시각(1030 = 10:30). <b>캡션 복사</b> 버튼으로 캡션을 그대로 붙여넣으면 됩니다. 커버는 이름이 <code>_커버.png</code>로 끝나는 사진, 올릴 때 "AI 생성" 표시 켜기.</li>'
+               '<li>파일명은 <b>시각_올릴 곳_영상 내용</b> 순서입니다(예: <code>1030_인스타_50대 잡티 비판텐.mp4</code>). 인스타용과 틱톡용이 따로 있으니 이름에 적힌 곳에 올리면 됩니다.</li><li>올린 글 링크를 알려 주시면 기록해 두고, 이틀 뒤 조회수와 "계속 갈지/바꿀지" 판단을 칸에 표시합니다.</li>'
+               '<li>올릴 시각을 놓치면 몰아서 올리지 말고 하루 뒤로 미룹니다.</li></ol>'
+               '<div class="sub" style="margin-top:8px">판단 기준(인스타, 올린 지 이틀 뒤 조회수): 3만 이상이면 같은 형식 더 만들기 / 1만~3만 그대로 유지 / 1천~1만 첫 문장만 교체 / 1천 미만이 3번 이어지면 주제 교체. 틱톡 첫 주는 이 숫자의 1/3로 봅니다.</div></div>')
     out.append('<h3 class="sec">결정 대기</h3><div class="sub">' + e(DECIDED) + '</div><div class="box scroll"><table>'
                + "".join(f"<tr><td class='nw'><b>{a}</b> {e(b)}</td><td>{e(c)}</td></tr>" for a, b, c in DECISIONS) + "</table></div>")
     out.append('<h3 class="sec">경로 모음</h3>' + path_table([
         ("업로드 폴더(날짜별)", PARK_DRIVE), ("프로젝트", PARK_P), ("캘린더 단일 소스", PARK_P / "out" / "sim_calendar.json"),
-        ("KPI 장부", PARK_P / "kpi.csv"), ("운영 런북", PARK_P / "운영_런북_인스타.md"), ("운영 계획 정본", PARK_P / "운영계획_최종.md"),
+        ("조회수 기록 장부",PARK_P / "kpi.csv"), ("운영 런북", PARK_P / "운영_런북_인스타.md"), ("운영 계획 정본", PARK_P / "운영계획_최종.md"),
         ("전날 18:00 스케줄러", PARK_P / "run_publish_tomorrow.cmd"), ("대시보드 생성기", HERE / "build.py")]))
     return "".join(out)
 
@@ -282,7 +283,7 @@ def park_section() -> str:
 # ─────────────────────────────────────────────────────────────────── 하린 ──
 def harin_names(it: dict) -> tuple[list[tuple[Path, str]], str]:
     """(원본, 업로드 폴더 파일명) 목록과 캡션 파일명."""
-    base = f"{it['time'].replace(':', '')}_{it['plat']}_{it['id']}"
+    base = f"{it['time'].replace(':', '')}_{pp.PLAT_KO[it['plat']]}_{it.get('name') or it['id']}"
     srcs = [ROOT / s for s in it.get("src", [])]
     if len(srcs) == 1:
         pairs = [(srcs[0], base + srcs[0].suffix.lower())]
@@ -321,7 +322,7 @@ def harin_sync(cal: dict) -> None:
             (folder / capname).write_text(it["caption"].strip() + "\n", encoding="utf-8")
         if it.get("cover"):
             cv = ROOT / it["cover"]
-            dst = folder / (capname[:-len("_캡션.txt")] + "_cover" + cv.suffix.lower())
+            dst = folder / (capname[:-len("_캡션.txt")] + "_커버" + cv.suffix.lower())
             if cv.exists() and not (dst.exists() and dst.stat().st_size == cv.stat().st_size):
                 shutil.copy2(cv, dst)
 
@@ -340,7 +341,7 @@ def harin_section() -> str:
            '<b>시작 11/12(목) 오전</b></div></div>',
            tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작"), (f"{len(cal.get('hold', []))}건", "보류"),
                   (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상을 비판텐 편만(D02·D08 제외) 날짜 폴더에 넣었습니다. 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 하린은 D30~D40 편, 박미경은 D04~D16 편을 썼습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
+           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상을 비판텐 영상만 날짜 폴더에 넣었습니다(제외하라고 하신 영상은 뺐습니다). 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 두 계정에 서로 다른 영상을 나눠 넣었습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
            f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
     for d in days:
@@ -361,9 +362,21 @@ def harin_section() -> str:
             else:
                 st = ("wait", "폴더 복사 대기")
             names = [n for _, n in pairs]
-            shown = names if len(names) <= 2 else [f"{names[0]} ~ {names[-1]} ({len(names)}장)"]
-            slots.append(dict(time=it["time"], plat=it["plat"], title=it["title"], sub=it["kind"], status=st,
-                              files=shown + ([capname] if cap else []), thumb=thumb(pairs[0][0]) if pairs else "",
+            if not names:
+                shown = []
+            elif names[0].endswith(".mp4"):
+                shown = [("① 영상", names[0])]
+            elif len(names) == 1:
+                shown = [("① 사진", names[0])]
+            else:
+                shown = [(f"① 사진 {len(names)}장", f"{names[0]} ~ {names[-1]} (번호 순서대로)")]
+            if names and it.get("cover"):
+                shown.append(("② 커버 사진", capname[:-len("_캡션.txt")] + "_커버.png"))
+            if names:
+                shown.append(("③ 글" if it.get("cover") else "② 글", "아래 '캡션 복사' 버튼" if cap else "글(캡션) 아직 없음"))
+            where = pp.PLAT_KO[it["plat"]] + "에 올리기 · " + it["kind"]
+            slots.append(dict(time=it["time"], plat=it["plat"], title=it["title"], sub=where, status=st,
+                              files=shown, thumb=thumb(pairs[0][0]) if pairs else "",
                               caption=cap, note=it.get("note", ""), track=False, dt=f"{d}T{it['time']}"))
         n_ok = sum(1 for s in slots if s["status"][0] == "ok")
         tags = tag("ok", "폴더 있음") if folder.exists() else tag("wait", "폴더 없음")
