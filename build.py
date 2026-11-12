@@ -329,14 +329,11 @@ def harin_section() -> str:
     days = sorted({it["date"] for it in cal["items"]})
     n_ready = sum(1 for it in cal["items"] if it["status"] == "ready")
     n_todo = sum(1 for it in cal["items"] if it["status"] == "todo")
-    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">AI 인플루언서 · 인스타(일상 피드 + 릴스) · 틱톡 하루 3편(얼굴 없이 물건·손·POV) · '
+    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">AI 인플루언서 육성(실제 사람처럼 · 전신 핏 위주, 벤치 miazelu·fit_aitana) · 인스타 하루 1~2건 · 틱톡은 얼굴 없이(규칙 유지 중) · '
            '<b>시작 11/12(목) 오전</b></div></div>',
-           tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작(틱톡 2일차부터)"), (f"{len(cal.get('hold', []))}건", "보류"),
+           tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "결정 대기(틱톡 2일차)"), (f"{len(cal.get('hold', []))}건", "보류"),
                   (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>지정하신 것은 "내일(11/12) 오전부터"입니다. 구체 시각(09:30, 09:40, 13:00, 19:00)과 '
-           '11/13~14 배치는 <b>제안</b>이라 바꾸실 수 있습니다.</li>'
-           '<li>11/13 릴스 1편은 캡션이 없습니다. 틱톡 2일차(11/13)부터는 소재가 아직 없습니다.</li>'
-           '<li>목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸에 두었습니다.</li></ul></div>',
+           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>11/13~18 인스타 일정은 2026-11-12에 새로 짠 <b>제안</b>입니다(시각·순서 변경 가능). 새 전신·운동·데일리룩 사진은 피드 v2 폴더에 있습니다.</li><li>틱톡은 "얼굴 금지" 규칙이 남아 있어 새 컷을 넣지 않았습니다. 풀지 정해 주시면 사진 모드로 채웁니다.</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li><li>프로필에 "AI로 생성한 프로필" 표시를 켜야 추천 노출이 줄지 않습니다(인스타 2026-08-31 정책).</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
            f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
     for d in days:
