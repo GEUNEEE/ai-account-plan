@@ -317,6 +317,13 @@ def harin_sync(cal: dict) -> None:
             cs = ROOT / it["caption_src"]
             if cs.exists():
                 (folder / capname).write_text(cap_body(cs.read_text(encoding="utf-8-sig")) + "\n", encoding="utf-8")
+        elif it.get("caption"):
+            (folder / capname).write_text(it["caption"].strip() + "\n", encoding="utf-8")
+        if it.get("cover"):
+            cv = ROOT / it["cover"]
+            dst = folder / (capname[:-len("_캡션.txt")] + "_cover" + cv.suffix.lower())
+            if cv.exists() and not (dst.exists() and dst.stat().st_size == cv.stat().st_size):
+                shutil.copy2(cv, dst)
 
 
 def harin_section() -> str:
@@ -329,11 +336,11 @@ def harin_section() -> str:
     days = sorted({it["date"] for it in cal["items"]})
     n_ready = sum(1 for it in cal["items"] if it["status"] == "ready")
     n_todo = sum(1 for it in cal["items"] if it["status"] == "todo")
-    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">AI 인플루언서 육성(실제 사람처럼 · 전신 핏 위주, 벤치 miazelu·fit_aitana) · 인스타 하루 1~2건 · 틱톡은 얼굴 없이(규칙 유지 중) · '
+    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">벤치마킹 조합 영상(아젤리아·비판텐) 하루 2편 + 기존 하린 소재 · 3일치씩 배치 후 검토 · '
            '<b>시작 11/12(목) 오전</b></div></div>',
-           tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "결정 대기(틱톡 2일차)"), (f"{len(cal.get('hold', []))}건", "보류"),
+           tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작"), (f"{len(cal.get('hold', []))}건", "보류"),
                   (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>11/13~18 인스타 일정은 2026-11-12에 새로 짠 <b>제안</b>입니다(시각·순서 변경 가능). 새 전신·운동·데일리룩 사진은 피드 v2 폴더에 있습니다.</li><li>틱톡은 "얼굴 금지" 규칙이 남아 있어 새 컷을 넣지 않았습니다. 풀지 정해 주시면 사진 모드로 채웁니다.</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li><li>프로필에 "AI로 생성한 프로필" 표시를 켜야 추천 노출이 줄지 않습니다(인스타 2026-08-31 정책).</li></ul></div>',
+           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상(아젤리아·비판텐)을 날짜 폴더에 넣었습니다. 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 하린은 D29~D34 편을 썼습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
            f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
     for d in days:
@@ -345,6 +352,8 @@ def harin_section() -> str:
             cap = ""
             if it.get("caption_src") and (ROOT / it["caption_src"]).exists():
                 cap = cap_body((ROOT / it["caption_src"]).read_text(encoding="utf-8-sig"))
+            elif it.get("caption"):
+                cap = it["caption"].strip()
             if it["status"] == "todo":
                 st = ("bad", "미제작")
             elif pairs and all(n in files for _, n in pairs):
