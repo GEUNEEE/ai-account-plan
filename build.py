@@ -210,6 +210,10 @@ def park_section() -> str:
            f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(같은 주제의 틱톡용 영상), 카드뉴스 화·금 12:30</div></div>',
            tiles([(f"{posted}/{total}", "올린 글 링크 기록"), (str(judged), "이틀 뒤 조회수 확인 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
                   (f"{len(days)}일", "전체 일정")]),
+           '<div class="box warn"><b>확인 필요 — 목소리 교체(11/12)</b><ul class="how">'
+           '<li>11/12~14 영상 12편을 새 목소리(원장님 목소리 B)로 다시 녹음해 폴더 파일을 바꿔 두었습니다. 문장을 통째로 녹음해서 문장 중간에 뚝 끊기는 곳은 0곳입니다(수치로 확인).</li>'
+           '<li>귀로 한 번 들어봐 주세요: 문장 안에서 자연스럽게 숨 쉬는 쉼이 가장 긴 곳은 11/14 검버섯 영상 2편의 "피부관리사 20년 경력이…" 문장(0.66초)입니다.</li>'
+           '<li>11/12 10:30 인스타는 이미 옛 목소리로 올리셨습니다. 새 목소리로 다시 올릴지는 정해 주세요.</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>']
     for wk in sorted({r["wk"] for r in pp.CAL}):
         wdays = [d for d in days if by_day[d][0]["wk"] == wk]
