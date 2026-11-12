@@ -336,11 +336,11 @@ def harin_section() -> str:
     days = sorted({it["date"] for it in cal["items"]})
     n_ready = sum(1 for it in cal["items"] if it["status"] == "ready")
     n_todo = sum(1 for it in cal["items"] if it["status"] == "todo")
-    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">벤치마킹 조합 영상(아젤리아·비판텐) 하루 2편 + 기존 하린 소재 · 3일치씩 배치 후 검토 · '
+    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">벤치마킹 조합 영상(비판텐 통일) 하루 2편 + 기존 하린 소재 · 3일치씩 배치 후 검토 · '
            '<b>시작 11/12(목) 오전</b></div></div>',
            tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작"), (f"{len(cal.get('hold', []))}건", "보류"),
                   (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상(아젤리아·비판텐)을 날짜 폴더에 넣었습니다. 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 하린은 D29~D34 편을 썼습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
+           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상을 비판텐 편만(D02·D08 제외) 날짜 폴더에 넣었습니다. 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 하린은 D30~D40 편, 박미경은 D04~D16 편을 썼습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
            f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
     for d in days:
