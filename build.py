@@ -47,6 +47,10 @@ HARIN_CAL = HARIN_P / "publish_calendar.json"
 PAGES_URL = "https://geuneee.github.io/ai-account-plan/"
 THUMBS = HERE / ".thumbs"
 WD = "월화수목금토일"
+PARK_EXTRA = PARK_P / "out" / "extra_calendar.json"   # 박미경 유튜브 쇼츠·스레드
+NAM_CAL = HERE / "nam_calendar.json"                  # 남자 AI 추천 초안
+PLAT_KO = {**pp.PLAT_KO, "YT": "유튜브", "TH": "스레드"}
+PLATS = [("ig", "인스타"), ("tt", "틱톡"), ("yt", "유튜브"), ("th", "스레드")]
 
 DECISIONS = [
     ("④", "실촬영 전환일", "미정 — 손등·튜브 실제 촬영 30클립을 찍는 날. 찍기 전까지는 AI 이미지 영상 + AI 라벨 ON 그대로"),
@@ -138,8 +142,8 @@ def folder_actions(folder: Path, web: str | None, web_parent: str | None) -> str
 
 def slot_card(s: dict) -> str:
     th = f'<img class="th" loading="lazy" alt="" src="{s["thumb"]}">' if s.get("thumb") else '<div class="th none">미리보기 없음</div>'
-    plat_cls = "ig" if s["plat"].startswith("IG") else "tt"
-    plat_txt = {"IG": "인스타", "TT": "틱톡", "IG 카드": "인스타 카드"}.get(s["plat"], s["plat"])
+    plat_cls = s["plat"][:2].lower()
+    plat_txt = {"IG": "인스타", "TT": "틱톡", "IG 카드": "인스타 카드", "YT": "유튜브 쇼츠", "TH": "스레드"}.get(s["plat"], s["plat"])
     head = (f'<div class="s1"><span class="tm">{e(s["time"])}</span><span class="pl {plat_cls}">{e(plat_txt)}</span>'
             f'{tag(*s["status"])}<span class="late"></span></div>')
     files = "".join(f'<div><b>{e(x[0])}</b> {e(x[1])}</div>' if isinstance(x, tuple) else f"<div>{e(x)}</div>"
@@ -158,10 +162,10 @@ def slot_card(s: dict) -> str:
         v = s.get("views") or ""
         jd = s.get("verdict") or ""
         jc = "ok" if jd.startswith("복제") else "acc" if jd.startswith("유지") else "bad"
-        kpi = ('<div class="kpi">' + (tag("ok", "올린 글 링크 기록됨") if s.get("url") else '<span class="sub">아직 안 올림(올린 뒤 링크를 알려 주세요)</span>')
+        kpi = ('<div class="kpi">' + (tag("ok", "올린 글 링크 기록됨") if s.get("url") else '<span class="sub">아직 안 올림</span>')
                + (f" · 이틀 뒤 조회수 {e(v)}회" if v else "") + (f" {tag(jc, jd)}" if jd else "") + "</div>")
     note = f'<div class="note">{e(s["note"])}</div>' if s.get("note") else ""
-    return (f'<div class="slot" data-dt="{e(s.get("dt", ""))}" data-track="{1 if s.get("track") else 0}" data-url="{1 if s.get("url") else 0}">{th}'
+    return (f'<div class="slot" data-pl="{plat_cls}" data-dt="{e(s.get("dt", ""))}" data-track="{1 if s.get("track") else 0}" data-url="{1 if s.get("url") else 0}">{th}'
             f'<div class="sb">{head}<div class="ti">{e(s["title"])}</div>'
             + (f'<div class="sub">{e(s["sub"])}</div>' if s.get("sub") else "")
             + f'<div class="fn">{files}</div>{note}{kpi}<div class="act">{" ".join(act)}</div>{cap}</div></div>')
@@ -171,7 +175,27 @@ def day_card(d: str, meta: str, tags: str, folder: Path, web, web_parent, slots:
     date = dt.date.fromisoformat(d)
     return (f'<div class="day" data-date="{d}"><div class="dh"><span class="d">{date.month}/{date.day} ({WD[date.weekday()]})</span>'
             f'<span class="k">{e(meta)}</span>{tags}<span class="da">{folder_actions(folder, web, web_parent)}</span></div>'
-            f'<div class="path">{e(win(folder))}</div><div class="slots">{"".join(slot_card(s) for s in slots)}</div></div>')
+            f'<div class="path">{e(win(folder))}</div>{plat_groups(slots)}</div>')
+
+
+def plat_groups(slots: list[dict]) -> str:
+    """한 날짜 안에서 인스타 / 틱톡 / 유튜브 / 스레드 로 나눠 보여준다."""
+    out = []
+    for cls, ko in PLATS:
+        g = [s for s in slots if s["plat"][:2].lower() == cls]
+        if g:
+            out.append(f'<div class="pg" data-pl="{cls}"><div class="pgh pl {cls}">{ko} <span class="sub">{len(g)}개</span></div>'
+                       f'<div class="slots">{"".join(slot_card(s) for s in g)}</div></div>')
+    return "".join(out)
+
+
+def plat_filter() -> str:
+    return ('<div class="pf"><button class="pfb on" data-f="all">전체</button>'
+            + "".join(f'<button class="pfb" data-f="{c}">{k}<span class="n"></span></button>' for c, k in PLATS) + "</div>")
+
+
+def role_box(who: str, txt: str) -> str:
+    return f'<div class="box role"><b>{e(who)}</b> — {txt}</div>'
 
 
 def path_table(rows) -> str:
@@ -206,21 +230,29 @@ def park_section() -> str:
     posted = sum(1 for r in kpi.values() if r.get("url"))
     judged = sum(1 for r in kpi.values() if r.get("판정"))
     ready = sum(1 for d in days if (PARK_DRIVE / d).exists())
-    out = ['<div class="hero"><h2>박미경 계정</h2><div class="sub">스팟멜트 기미조합 · 6주 운영 '
-           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡은 5분 뒤(같은 주제의 틱톡용 영상), 카드뉴스 화·금 12:30</div></div>',
-           tiles([(f"{posted}/{total}", "올린 글 링크 기록"), (str(judged), "이틀 뒤 조회수 확인 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
-                  (f"{len(days)}일", "전체 일정")]),
-           '<div class="box warn"><b>확인 필요 — 목소리 교체(11/12) · 문장 끝 끊김·전/후 사진 수정(11/13)</b><ul class="how">'
-           '<li>11/12~14 영상 12편을 새 목소리(원장님 목소리 B)로 다시 녹음해 폴더 파일을 바꿔 두었습니다. 문장을 통째로 녹음해서 문장 중간에 뚝 끊기는 곳은 0곳입니다(수치로 확인).</li>'
-           '<li>11/13 수정: 문장이 끝날 때마다 툭 끊기던 것 → 말 끝 여운·다음 문장 숨소리를 살리고 부드럽게 줄어들게 고쳐 12편 모두 다시 바꿔 두었습니다(목소리·대본은 그대로). 한 번 들어봐 주세요.</li>'
-           '<li>11/13 수정: "잡티 지우는 법은" 장면의 전/후 사진이 뒤바뀌어 보이던 것 → 전/후가 확실한 다른 체험단 사진(위=사용 전 주근깨, 아래=사용 후)으로 바꿨습니다.</li>'
-           '<li>귀로 한 번 들어봐 주세요: 문장 안에서 자연스럽게 숨 쉬는 쉼이 가장 긴 곳은 11/14 검버섯 영상 2편의 "피부관리사 20년 경력이…" 문장(0.66초)입니다.</li>'
-           '<li>11/12 10:30 인스타는 이미 옛 목소리로 올리셨습니다. 새 목소리로 다시 올릴지는 정해 주세요.</li></ul></div>',
+    extra = json.loads(PARK_EXTRA.read_text(encoding="utf-8"))["items"] if PARK_EXTRA.exists() else []
+    try:
+        sync_items(extra, PARK_DRIVE)
+    except OSError as ex:
+        print(f"박미경 유튜브·스레드 폴더 동기화 실패: {ex}")
+    out = ['<div class="hero"><h2>박미경 계정</h2><div class="sub">스팟멜트 기미조합 · '
+           f'{md(days[0])}~{md(days[-1])} · 인스타 10:30 / 15:00, 틱톡 5분 뒤, 유튜브 쇼츠 10분 뒤, 스레드 12:00 / 20:30, 카드뉴스 화·금 12:30</div></div>',
+           role_box("올리는 사람: Claude", "계정 연결을 승인해 주시면 업로드·댓글 관리·조회수 기록까지 제가 합니다. 연결 전까지는 아래 파일로 직접 올리실 수 있습니다. "
+                    "연결 상태 — 인스타: 승인 대기 · 틱톡: 계정 주소 필요 · 유튜브: 채널 필요 · 스레드: 계정 필요"),
+           tiles([(f"{posted}/{total}", "올린 글 링크 기록(인스타·틱톡)"), (str(judged), "이틀 뒤 조회수 확인 완료"), (f"{ready}/{len(days)}", "날짜 폴더 생성(전날 18:00 자동)"),
+                  (f"{len(extra)}건", "유튜브 쇼츠·스레드(3일치)")]),
+           '<div class="box warn"><b>확인 필요</b><ul class="how">'
+           '<li>유튜브는 쇼츠로 잡았습니다(지금 영상이 전부 1분 이내 세로 영상). 같은 날 인스타용 영상을 그대로 올립니다. 긴 영상(롱폼)은 따로 기획이 필요합니다.</li>'
+           '<li>유튜브·스레드 시각은 제 추천값입니다. 스레드는 하루 2개(사진 있는 글 1 + 글만 1)로 3일치를 넣었습니다.</li>'
+           '<li>빨간 공구상자·은색 타일 배경이 들어간 영상이 11/20 이후에 남아 있습니다. 다시 만들지 정해 주세요.</li>'
+           '<li>영상 자막에 "지우는 법·없애는 법" 표현이 들어 있습니다(글에서는 쓰지 않기로 한 표현). 자막을 고칠지 정해 주세요.</li></ul></div>',
+           plat_filter(),
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>']
     for wk in sorted({r["wk"] for r in pp.CAL}):
         wdays = [d for d in days if by_day[d][0]["wk"] == wk]
         bon = "인스타용·틱톡용 영상이 따로 있습니다(같은 주제, 다른 편집)"
-        out.append(f'<details class="wk"><summary>{wk}주차 <span class="sub">{md(wdays[0])}~{md(wdays[-1])} · {bon}</span></summary>')
+        op = " open" if wdays[0] <= dt.date.today().isoformat() <= wdays[-1] else ""
+        out.append(f'<details class="wk"{op}><summary>{wk}주차 <span class="sub">{md(wdays[0])}~{md(wdays[-1])} · {bon}</span></summary>')
         for d in wdays:
             date = dt.date.fromisoformat(d)
             dayn = (date - pp.START).days + 1
@@ -260,6 +292,7 @@ def park_section() -> str:
                         status=st, files=[("① 사진 1", f"{pp.card_base(hhmm, cid)}_1.jpg"), ("② 사진 2", f"{pp.card_base(hhmm, cid)}_2.jpg"), ("③ 글", "아래 '캡션 복사' 버튼")], thumb=thumb(srcc),
                         caption=cap, cap_copy=no_mark(cap), note="같은 카드를 두 번째로 올리는 날(문구 바꾼 판은 아직 안 만들어 같은 사진 사용)" if cid.endswith("b") else "",
                         url=k.get("url"), views=k.get("views_48h"), verdict=k.get("판정"), track=True, dt=f"{d}T{r['slot']}"))
+            slots += item_slots(extra, d, files, folder)
             slots.sort(key=lambda s: s["time"])
             tags = tag("ok", "폴더 있음") if exists else tag("wait", "전날 18:00 생성")
             if dayn <= pp.PROTECT_DAYS:
@@ -280,7 +313,7 @@ def park_section() -> str:
     out.append('<h3 class="sec">결정 대기</h3><div class="sub">' + e(DECIDED) + '</div><div class="box scroll"><table>'
                + "".join(f"<tr><td class='nw'><b>{a}</b> {e(b)}</td><td>{e(c)}</td></tr>" for a, b, c in DECISIONS) + "</table></div>")
     out.append('<h3 class="sec">경로 모음</h3>' + path_table([
-        ("업로드 폴더(날짜별)", PARK_DRIVE), ("프로젝트", PARK_P), ("캘린더 단일 소스", PARK_P / "out" / "sim_calendar.json"),
+        ("업로드 폴더(날짜별)", PARK_DRIVE), ("프로젝트", PARK_P), ("일정(인스타·틱톡)", PARK_P / "out" / "sim_calendar.json"), ("일정(유튜브·스레드)", PARK_EXTRA),
         ("조회수 기록 장부",PARK_P / "kpi.csv"), ("운영 런북", PARK_P / "운영_런북_인스타.md"), ("운영 계획 정본", PARK_P / "운영계획_최종.md"),
         ("전날 18:00 스케줄러", PARK_P / "run_publish_tomorrow.cmd"), ("대시보드 생성기", HERE / "build.py")]))
     return "".join(out)
@@ -289,7 +322,7 @@ def park_section() -> str:
 # ─────────────────────────────────────────────────────────────────── 하린 ──
 def harin_names(it: dict) -> tuple[list[tuple[Path, str]], str]:
     """(원본, 업로드 폴더 파일명) 목록과 캡션 파일명."""
-    base = f"{it['time'].replace(':', '')}_{pp.PLAT_KO[it['plat']]}_{it.get('name') or it['id']}"
+    base = f"{it['time'].replace(':', '')}_{PLAT_KO[it['plat']]}_{it.get('name') or it['id']}"
     srcs = [ROOT / s for s in it.get("src", [])]
     if len(srcs) == 1:
         pairs = [(srcs[0], base + srcs[0].suffix.lower())]
@@ -308,12 +341,12 @@ def cap_body(text: str) -> str:
     return "\n".join(out).strip()
 
 
-def harin_sync(cal: dict) -> None:
+def sync_items(items: list, drive: Path) -> None:
     """ready 항목을 002. 하린 계정 업로드\\YYYY-MM-DD\\ 로 복사(같은 크기면 건너뜀). 원본은 건드리지 않음."""
-    for it in cal["items"]:
+    for it in items:
         if it["status"] != "ready":
             continue
-        folder = HARIN_DRIVE / it["date"]
+        folder = drive / it["date"]
         folder.mkdir(parents=True, exist_ok=True)
         pairs, capname = harin_names(it)
         for src, name in pairs:
@@ -333,57 +366,78 @@ def harin_sync(cal: dict) -> None:
                 shutil.copy2(cv, dst)
 
 
+def item_slots(items: list, d: str, files: set, folder: Path | None = None) -> list[dict]:
+    """캘린더 항목(하린 형식) → 그 날짜의 칸 목록. 박미경 유튜브·스레드, 남자 AI 초안도 같은 형식."""
+    slots = []
+    for it in sorted((x for x in items if x["date"] == d), key=lambda x: x["time"]):
+        pairs, capname = harin_names(it)
+        cap = ""
+        if it.get("caption_src") and (ROOT / it["caption_src"]).exists():
+            cap = cap_body((ROOT / it["caption_src"]).read_text(encoding="utf-8-sig"))
+        elif it.get("caption"):
+            cap = it["caption"].strip()
+        names = [n for _, n in pairs]
+        use = it.get("use")
+        if it["status"] == "todo":
+            st = ("bad", "미제작")
+        elif it["status"] == "draft":
+            st = ("wait", "추천 초안 · 확정 전")
+        elif use:
+            st = ("ok", "올릴 준비 완료") if use in files else ("wait", "영상 폴더 복사 대기")
+        elif not pairs:
+            st = ("ok", "글만 올리기 · 준비 완료") if cap else ("bad", "글 없음")
+        elif all(n in files for n in names):
+            st = ("ok", "올릴 준비 완료")
+        else:
+            st = ("wait", "폴더 복사 대기")
+        if use:
+            shown = [("① 영상", f"{use} (인스타용 파일 그대로)"), ("② 제목·설명", "아래 '캡션 복사' 버튼")]
+        elif not names:
+            shown = [("① 글", "아래 '캡션 복사' 버튼 (사진 없이 글만)")] if cap else []
+        else:
+            if names[0].endswith(".mp4"):
+                shown = [("① 영상", names[0])]
+            elif len(names) == 1:
+                shown = [("① 사진", names[0])]
+            else:
+                shown = [(f"① 사진 {len(names)}장", f"{names[0]} ~ {names[-1]} (번호 순서대로)")]
+            if it.get("cover"):
+                shown.append(("② 커버 사진", capname[:-len("_캡션.txt")] + "_커버.png"))
+            shown.append(("③ 글" if it.get("cover") else "② 글", "아래 '캡션 복사' 버튼" if cap else "글(캡션) 아직 없음"))
+        where = PLAT_KO[it["plat"]] + "에 올리기 · " + it["kind"]
+        slots.append(dict(time=it["time"], plat=it["plat"], title=it["title"], sub=where, status=st,
+                          files=shown, thumb=thumb(pairs[0][0]) if pairs else thumb(folder / use.replace(".mp4", "_커버.png")) if use and folder else "",
+                          caption=cap, note=it.get("note", ""), track=False, dt=f"{d}T{it['time']}"))
+    return slots
+
+
 def harin_section() -> str:
     cal = json.loads(HARIN_CAL.read_text(encoding="utf-8"))
     try:
-        harin_sync(cal)
+        sync_items(cal["items"], HARIN_DRIVE)
     except OSError as ex:
         print(f"하린 폴더 동기화 실패: {ex}")
     ids = drive_children(HARIN_ID)
     days = sorted({it["date"] for it in cal["items"]})
     n_ready = sum(1 for it in cal["items"] if it["status"] == "ready")
     n_todo = sum(1 for it in cal["items"] if it["status"] == "todo")
-    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">벤치마킹 조합 영상(비판텐 통일) 하루 2편 + 기존 하린 소재 · 3일치씩 배치 후 검토 · '
-           '<b>시작 11/12(목) 오전</b></div></div>',
+    n_plat = {c: sum(1 for it in cal["items"] if it["plat"][:2].lower() == c) for c, _ in PLATS}
+    out = ['<div class="hero"><h2>하린 계정</h2><div class="sub">28세 전 피부과 상담실장 · 인스타 / 틱톡 / 유튜브 쇼츠 / 스레드 · 3일치씩 배치 후 검토</div></div>',
+           role_box("올리는 사람: 대표님", "소재·글·폴더는 제가 준비해 두고, 업로드는 직접 하십니다. 스레드 글은 하루 3개(사진 있는 글 + 글만 있는 글)."),
            tiles([(f"{n_ready}건", "올릴 준비된 소재"), (f"{n_todo}건", "미제작"), (f"{len(cal.get('hold', []))}건", "보류"),
-                  (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]),
-           '<div class="box warn"><b>확인 필요</b><ul class="how"><li>이미 만들어 둔 벤치마킹 조합 영상을 비판텐 영상만 날짜 폴더에 넣었습니다(제외하라고 하신 영상은 뺐습니다). 지금은 <b>3일치(11/12~14)</b>만 배치했고, 검토 후 다음 3일치를 넣습니다.</li><li>박미경 계정과 같은 영상이 겹치지 않도록 두 계정에 서로 다른 영상을 나눠 넣었습니다.</li><li>2026-11-12에 새로 만든 전신·운동·데일리룩 사진은 일정에서 빼고 보류 칸에 두었습니다(검토 후 결정).</li><li>11/13 릴스 1편은 캡션이 없습니다. 목소리 미확정 → 릴스 2편(외박쌩얼)은 보류 칸.</li></ul></div>',
+                  (f"{md(days[0])}~{md(days[-1])}", "일정 잡힌 기간")]
+                 + [(f"{n_plat[c]}건", k) for c, k in PLATS]),
+           '<div class="box warn"><b>확인 필요</b><ul class="how">'
+           '<li>유튜브 쇼츠는 같은 날 인스타용 영상 파일을 그대로 올립니다(새 파일 없음). 시각과 유튜브·스레드 배치는 제 추천값입니다.</li>'
+           '<li>스레드 사진은 지금 있는 사진(일상 사진·기미 습관 카드)을 썼습니다. 새 사진은 다음 3일치부터 만들어 넣겠습니다.</li>'
+           '<li>틱톡 2·3일차 3편은 아직 안 만들었습니다. 목소리 미확정이라 릴스 2편(외박쌩얼)은 보류 칸에 있습니다.</li></ul></div>',
+           plat_filter(),
            '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">전체 일정</h3>',
-           f'<details class="wk"><summary>1주차 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
+           f'<details class="wk" open><summary>전체 <span class="sub">{md(days[0])}~{md(days[-1])} · 소재 있는 날만</span></summary>']
     for d in days:
         folder = HARIN_DRIVE / d
         files = {f.name for f in folder.iterdir()} if folder.exists() else set()
-        slots = []
-        for it in sorted((x for x in cal["items"] if x["date"] == d), key=lambda x: x["time"]):
-            pairs, capname = harin_names(it)
-            cap = ""
-            if it.get("caption_src") and (ROOT / it["caption_src"]).exists():
-                cap = cap_body((ROOT / it["caption_src"]).read_text(encoding="utf-8-sig"))
-            elif it.get("caption"):
-                cap = it["caption"].strip()
-            if it["status"] == "todo":
-                st = ("bad", "미제작")
-            elif pairs and all(n in files for _, n in pairs):
-                st = ("ok", "올릴 준비 완료")
-            else:
-                st = ("wait", "폴더 복사 대기")
-            names = [n for _, n in pairs]
-            if not names:
-                shown = []
-            elif names[0].endswith(".mp4"):
-                shown = [("① 영상", names[0])]
-            elif len(names) == 1:
-                shown = [("① 사진", names[0])]
-            else:
-                shown = [(f"① 사진 {len(names)}장", f"{names[0]} ~ {names[-1]} (번호 순서대로)")]
-            if names and it.get("cover"):
-                shown.append(("② 커버 사진", capname[:-len("_캡션.txt")] + "_커버.png"))
-            if names:
-                shown.append(("③ 글" if it.get("cover") else "② 글", "아래 '캡션 복사' 버튼" if cap else "글(캡션) 아직 없음"))
-            where = pp.PLAT_KO[it["plat"]] + "에 올리기 · " + it["kind"]
-            slots.append(dict(time=it["time"], plat=it["plat"], title=it["title"], sub=where, status=st,
-                              files=shown, thumb=thumb(pairs[0][0]) if pairs else "",
-                              caption=cap, note=it.get("note", ""), track=False, dt=f"{d}T{it['time']}"))
+        slots = item_slots(cal["items"], d, files, folder)
         n_ok = sum(1 for s in slots if s["status"][0] == "ok")
         tags = tag("ok", "폴더 있음") if folder.exists() else tag("wait", "폴더 없음")
         out.append(day_card(d, f"{n_ok}/{len(slots)}건 준비", tags, folder, gurl(ids.get(d)), gurl(HARIN_ID), slots))
@@ -407,13 +461,20 @@ def nam_section() -> str:
         NAM_DRIVE.mkdir(exist_ok=True)
     except OSError as ex:
         print(f"남AI 폴더 생성 실패: {ex}")
-    return ('<div class="hero"><h2>남AI 계정</h2><div class="sub">아직 소재·일정이 없습니다. 탭과 업로드 폴더만 준비해 둔 상태입니다.</div></div>'
-            + tiles([("0건", "올릴 준비된 소재"), ("미정", "시작일"), ("미정", "플랫폼·하루 편수"), ("미정", "캐릭터·콘셉트")])
-            + '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>'
-            '<div class="box warn"><b>시작하려면 정해 주실 것</b><ol class="how"><li>캐릭터(이름·나이대·직업 설정)와 다룰 제품</li>'
-            '<li>플랫폼(인스타/틱톡)과 하루 편수, 시작일</li><li>벤치마킹할 계정이나 참고 영상</li></ol>'
-            '<div class="sub" style="margin-top:6px">정해지면 박미경·하린과 같은 구조(캘린더 1개 → 날짜별 폴더 → 이 탭)로 채웁니다.</div></div>'
-            + '<h3 class="sec">경로 모음</h3>' + path_table([("업로드 폴더(비어 있음)", NAM_DRIVE)]))
+    items = json.loads(NAM_CAL.read_text(encoding="utf-8"))["items"] if NAM_CAL.exists() else []
+    days = sorted({it["date"] for it in items})
+    out = ['<div class="hero"><h2>남자 AI 계정</h2><div class="sub">캐릭터·제품이 아직 정해지지 않았습니다. 아래는 제 추천안(수면 영양제 슬립이지 담당 계정)으로 쓴 초안입니다.</div></div>',
+           role_box("올리는 사람: 대표님", "확정되면 소재·글·폴더는 제가 준비하고, 업로드는 직접 하십니다. 스레드 글 하루 2~3개 포함."),
+           tiles([("0건", "올릴 준비된 소재"), (f"{len(items)}건", "스레드 글 초안"), ("미정", "시작일"), ("미정", "캐릭터·제품")]),
+           '<div class="box warn"><b>시작하려면 정해 주실 것</b><ol class="how"><li>다룰 제품 — 추천: 슬립이지(수면). 박미경·하린이 스팟멜트라 겹치지 않습니다.</li>'
+           '<li>이름·나이대, 얼굴을 보일지</li><li>플랫폼(인스타·틱톡·유튜브·스레드 중 어디까지)과 시작일</li><li>벤치마킹할 계정이나 참고 영상</li></ol>'
+           '<div class="sub" style="margin-top:6px">초안 글은 확정 전이라 업로드 폴더에 넣지 않았습니다. 방향이 맞으면 그대로 3일치씩 채웁니다.</div></div>',
+           plat_filter(), '<h3 class="sec">오늘 올릴 것</h3><div class="todaybox"></div>', '<h3 class="sec">추천 초안</h3>']
+    for d in days:
+        slots = item_slots(items, d, set())
+        out.append(day_card(d, f"초안 {len(slots)}건", tag("wait", "확정 전"), NAM_DRIVE / d, None, None, slots))
+    out.append('<h3 class="sec">경로 모음</h3>' + path_table([("업로드 폴더(비어 있음)", NAM_DRIVE), ("초안 일정 파일", NAM_CAL)]))
+    return "".join(out)
 
 
 # ───────────────────────────────────────────────────────────────── 페이지 ──
@@ -425,10 +486,10 @@ def render() -> str:
             '<div class="top"><div class="topin"><h1>계정 업로드 플랜</h1>'
             f'<div class="gen">갱신 {now:%m/%d %H:%M} · 매일 18:00 자동</div><div class="tabs">'
             '<button class="tab" data-t="park">박미경<span class="c"></span></button><button class="tab" data-t="harin">하린<span class="c"></span></button>'
-            '<button class="tab" data-t="nam">남AI<span class="c"></span></button></div></div></div>'
+            '<button class="tab" data-t="nam">남자 AI<span class="c"></span></button></div></div></div>'
             f'<div class="wrap"><section class="pane" id="park">{park_section()}</section><section class="pane" id="harin">{harin_section()}</section>'
             f'<section class="pane" id="nam">{nam_section()}</section>'
-            f'<div class="sub" style="margin:28px 0 10px">웹 주소 <a href="{PAGES_URL}">{PAGES_URL}</a> · 영상 업로드는 직접, 나머지(폴더·캡션·기록)는 자동 준비</div></div>'
+            f'<div class="sub" style="margin:28px 0 10px">웹 주소 <a href="{PAGES_URL}">{PAGES_URL}</a> · 박미경 = Claude가 올림(연결 승인 후) · 하린·남자 AI = 직접 올림 · 폴더·글·기록은 자동 준비</div></div>'
             f'<div id="toast" class="toast"></div><script>{JS}</script></body></html>')
 
 

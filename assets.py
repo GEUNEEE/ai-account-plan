@@ -2,9 +2,9 @@
 
 CSS = """
 :root{--bg:#f5f6f8;--card:#fff;--ink:#1b2130;--mute:#667085;--line:#e4e7ec;--ok:#15803d;--okbg:#dcfce7;--wait:#b45309;--waitbg:#fef3c7;
---bad:#b91c1c;--badbg:#fee2e2;--acc:#2563eb;--accbg:#dbeafe;--today:#fff7ed;--ig:#c026d3;--tt:#0f766e;--pt:#fff}
+--bad:#b91c1c;--badbg:#fee2e2;--acc:#2563eb;--accbg:#dbeafe;--today:#fff7ed;--ig:#c026d3;--tt:#0f766e;--yt:#dc2626;--th:#475569;--pt:#fff}
 @media(prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#171b24;--ink:#e6e8ee;--mute:#9aa3b2;--line:#2a3140;--ok:#4ade80;--okbg:#14301f;
---wait:#fbbf24;--waitbg:#3a2a0a;--bad:#f87171;--badbg:#3a1414;--acc:#60a5fa;--accbg:#172554;--today:#2a1f12;--ig:#e879f9;--tt:#2dd4bf;--pt:#0b1220}}
+--wait:#fbbf24;--waitbg:#3a2a0a;--bad:#f87171;--badbg:#3a1414;--acc:#60a5fa;--accbg:#172554;--today:#2a1f12;--ig:#e879f9;--tt:#2dd4bf;--yt:#f87171;--th:#cbd5e1;--pt:#0b1220}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Malgun Gothic","Apple SD Gothic Neo",Pretendard,system-ui,sans-serif}
 .top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
@@ -33,10 +33,15 @@ h3.sec{font-size:16px;margin:26px 0 8px}
 border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;padding:12px}
 .slot{display:flex;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);min-width:0}
-.th{width:66px;height:117px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
-.th.none{display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;color:var(--mute);padding:4px}
+.slot>.th{width:66px;height:117px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
+.slot>.th.none{display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;color:var(--mute);padding:4px}
 .sb{min-width:0;flex:1}.s1{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
-.tm{font-size:17px;font-weight:700}.pl{font-size:12px;font-weight:700}.pl.ig{color:var(--ig)}.pl.tt{color:var(--tt)}
+.tm{font-size:17px;font-weight:700}.pl{font-size:12px;font-weight:700}.pl.ig{color:var(--ig)}.pl.tt{color:var(--tt)}.pl.yt{color:var(--yt)}.pl.th{color:var(--th)}
+.pg{border-top:1px solid var(--line)}.pgh{font-size:14px;padding:10px 14px 0}.pg .slots{padding-top:8px}
+.pf{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0;padding:6px 0}
+.pfb{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pfb.on{background:var(--acc);border-color:var(--acc);color:var(--pt)}.pfb .n{font-weight:600;opacity:.75;margin-left:5px}
+.pg.hid,.day.hid{display:none}.box.role{border-color:var(--acc);background:var(--accbg)}
 .ti{font-weight:700;margin-top:2px;overflow-wrap:anywhere}
 .fn{font:11.5px/1.45 Consolas,monospace;color:var(--mute);margin-top:3px;overflow-wrap:anywhere}
 .note{font-size:12px;color:var(--wait);margin-top:3px}.kpi{font-size:12px;margin-top:4px}
@@ -85,6 +90,12 @@ document.querySelectorAll('.pane').forEach(pane=>{const days=[...pane.querySelec
   if(nx){const h=document.createElement('h3');h.className='sec';h.textContent=(t?'다음 날 미리 보기':'다음 일정');box.appendChild(h);
    const c=nx.cloneNode(true);c.classList.add('next');box.appendChild(c)}}
  const c=document.querySelector('.tab[data-t="'+pane.id+'"] .c');if(c){c.textContent='오늘 '+n;if(!n)c.classList.add('z')}});
+document.querySelectorAll('.pane').forEach(pane=>{const bs=[...pane.querySelectorAll('.pfb')];
+ bs.forEach(b=>{if(b.dataset.f!=='all'){const k=[...pane.querySelectorAll('.slot[data-pl="'+b.dataset.f+'"]')].filter(x=>!x.closest('.todaybox')).length;
+  b.querySelector('.n').textContent=k;if(!k)b.style.opacity=.45}
+  b.addEventListener('click',()=>{const f=b.dataset.f;bs.forEach(x=>x.classList.toggle('on',x===b));
+   pane.querySelectorAll('.pg').forEach(g=>g.classList.toggle('hid',f!=='all'&&g.dataset.pl!==f));
+   pane.querySelectorAll('.day').forEach(d=>d.classList.toggle('hid',!d.querySelector('.pg:not(.hid)')))})})});
 function show(id){if(!document.getElementById(id))id=document.body.dataset.default||'park';
  document.querySelectorAll('.pane').forEach(x=>x.classList.toggle('on',x.id===id));
  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===id));
