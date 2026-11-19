@@ -47,14 +47,19 @@ CHARS = {
     "nam": dict(
         name="남자 AI", proj="influencer_nam", ref="gen/NAM_ID.png", prefix="NAM_mb_",
         drive=ROOT / "003. 남AI 계정 업로드" / "인물 모델 북",
-        hair_back="short neat black hair with a clean natural neckline",
-        identity=("IDENTITY (fictional new person, same man in every shot): an ordinary Korean office worker, 41, calm, trustworthy and well-rested looking, "
-                  "not an actor and not a model. Oval face with a slightly square jaw, medium neutral skin, straight natural brows, gentle eyes with "
-                  "soft smile lines, straight medium nose, medium lips. Short neat black hair with a natural side part and a few early gray hairs "
-                  "at the temples. Average healthy build. He does not resemble any celebrity or any specific real person.\n\n"
-                  "SKIN (real, age 41): ordinary male skin with visible pores, faint shaving shadow on the jaw and upper lip, a few small moles and "
-                  "freckles on the cheeks, fine lines at the eye corners and forehead, slight redness around the nose. Not airbrushed, no makeup look."),
-        wardrobe=("Wardrobe: navy crewneck knit over a white t-shirt; when the legs are visible, light grey straight trousers and plain white sneakers."),
+        hair_back="dark ash-brown medium-length wavy hair swept back, reaching the nape, broad muscular back and shoulders filling the t-shirt",
+        # 2026-11-20 후보 3(gen/NAM_I.png) 확정 — 벤치 @bestar322 느낌, 20대 후반 피트니스·카페 인플루언서. 이전 41세 안은 gen/old_41
+        identity=("IDENTITY (fictional new person, same man in every shot): a Korean man, 28, a fitness and cafe lifestyle influencer who also works "
+                  "as a fashion model, strikingly handsome. Soft oval face with a clean defined jawline, straight dark brows, bright inner-double-eyelid "
+                  "eyes that curve when he smiles, straight nose with a slightly rounded tip, medium lips, a small dimple on one cheek when smiling. "
+                  "Dark ash-brown medium-length hair in loose natural waves swept back from the forehead, a few strands falling forward, tucked behind one ear. "
+                  "Tall, about 184 cm, long legs, very muscular but lean: broad shoulders, big chest, thick defined arms, narrow waist, clearly visible "
+                  "through his clothes, not a bodybuilder. He does not resemble any celebrity, idol, actor or any specific real person.\n\n"
+                  "SKIN (real, age 28): real young male skin with visible fine pores, very faint shaving shadow on the upper lip and jaw, one or two tiny moles, "
+                  "slight natural redness beside the nose, faint under-eye texture, natural slight facial asymmetry, a few flyaway hairs. "
+                  "Not airbrushed, not porcelain, not glossy, no makeup look, no beauty filter."),
+        wardrobe=("Wardrobe: fitted plain white crewneck t-shirt, a thin silver chain necklace, a simple watch; when the legs are visible, "
+                  "black wide-leg slacks and black leather derby shoes."),
     ),
 }
 
